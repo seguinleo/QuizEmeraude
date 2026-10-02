@@ -1,0 +1,332 @@
+@font-face {
+  font-display: swap;
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 400;
+  src: url('./fonts/cormorant-garamond-v21-latin-regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-display: swap;
+  font-family: 'Cormorant Garamond';
+  font-style: italic;
+  font-weight: 400;
+  src: url('./fonts/cormorant-garamond-v21-latin-italic.woff2') format('woff2');
+}
+
+@font-face {
+  font-display: swap;
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 700;
+  src: url('./fonts/cormorant-garamond-v21-latin-700.woff2') format('woff2');
+}
+
+@font-face {
+  font-display: swap;
+  font-family: 'Cormorant Garamond';
+  font-style: italic;
+  font-weight: 700;
+  src: url('./fonts/cormorant-garamond-v21-latin-700italic.woff2') format('woff2');
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  scrollbar-color: rgba(150, 150, 150, .4) transparent;
+  scrollbar-width: thin;
+  accent-color: #068736;
+  font-family: Helvetica Neue, Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid #068736;
+  outline-offset: 2px;
+}
+
+body {
+  margin: 0;
+  font-size: .9rem;
+  background: #151e15;
+  text-align: center;
+  color: #d3d3d3;
+  height: 100dvh;
+  text-align: center;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  width: 700px;
+  height: 700px;
+  top: -300px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: radial-gradient(circle,
+      #068736 0%,
+      #046126 25%,
+      #023515 45%,
+      transparent 70%);
+  filter: blur(20px);
+  pointer-events: none;
+  z-index: -1;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+}
+
+main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 10px;
+  text-align: center;
+  flex: 1;
+}
+
+.welcome {
+  max-width: 420px;
+  text-align: left;
+  line-height: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+#score {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  padding: 5px;
+}
+
+#score div {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+#top-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  margin: 3rem auto 1rem;
+}
+
+#top-text .themes {
+  display: flex;
+  gap: 5px;
+}
+
+#top-text .theme {
+  font-weight: 700;
+  padding: 8px 1rem;
+  border-radius: 48px;
+  background-color: #046126;
+}
+
+h1 {
+  font-family: 'Cormorant Garamond';
+  font-size: 3rem;
+  margin: 3rem auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+}
+
+h2 {
+  font-family: 'Cormorant Garamond';
+  font-size: 1.5rem;
+}
+
+.answers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+#error-notification {
+  position: fixed;
+  top: 2rem;
+  right: 2rem;
+  text-align: center;
+  max-width: 320px;
+  padding: 10px 1rem;
+  border-radius: 1rem;
+  z-index: 999;
+  backdrop-filter: blur(8px);
+  background: #760c0c;
+}
+
+.d-none {
+  display: none;
+}
+
+button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 55px;
+  padding: 1rem;
+  border: 2px solid rgba(255, 255, 255, .15);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .15);
+  color: #d3d3d3;
+  cursor: pointer;
+  font-size: .9rem;
+  font-family: inherit;
+  transition: .1s;
+}
+
+@media (hover: hover) {
+  button:hover {
+    box-shadow: #068736 0px 7px 29px 0px;
+  }
+}
+
+button.correct {
+  background: #068736;
+}
+
+button.wrong {
+  background: #760c0c;
+}
+
+button:disabled {
+  background: #2c2c2c;
+  cursor: not-allowed;
+}
+
+input {
+  height: 55px;
+  width: 180px;
+  padding: 1rem;
+  border: 2px solid rgba(255, 255, 255, .15);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .15);
+  color: #d3d3d3;
+  font-size: .9rem;
+  font-family: inherit;
+}
+
+.gameMode {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+}
+
+.gameModeBtn {
+  background: linear-gradient(#046126, #068736);
+  width: 120px;
+}
+
+.multiGame {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  margin-bottom: 2rem;
+}
+
+fieldset {
+  border: 2px solid rgba(255, 255, 255, .15);
+  border-radius: 1rem;
+  padding: 12px;
+  display: flex;
+  gap: 5px;
+}
+
+legend {
+  font-family: 'Cormorant Garamond';
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.playerList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 2rem;
+}
+
+.player {
+  font-weight: 700;
+  padding: 8px 1rem;
+  border-radius: 48px;
+  font-size: 1.1rem;
+  background-color: #046126;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.tagHost {
+  font-size: .9rem;
+  color: #3ec971;
+  border: 1px solid #3ec971;
+  border-radius: 48px;
+  padding: 0 4px;
+}
+
+.blueBtn {
+  background: #204ba8;
+}
+
+.redBtn {
+  background: #760c0c;
+}
+
+.italic {
+  font-style: italic;
+}
+
+footer {
+  margin: 5px auto;
+  font-size: .7rem;
+}
+
+.roomCodeContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 2rem 0;
+}
+
+.roomCode {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 2px solid rgba(255, 255, 255, .15);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .15);
+  font-size: 28px;
+  font-weight: bold;
+  letter-spacing: 5px;
+  padding: 6px 12px 6px 18px;
+  height: 55px;
+}
+
+@media (max-width: 600px) {
+  body::before {
+    width: 600px;
+    height: 600px;
+    left: 85%;
+    top: auto;
+  }
+
+  .answers {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
