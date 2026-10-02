@@ -97,7 +97,7 @@ main {
   max-width: 420px;
   text-align: left;
   line-height: 1.5rem;
-  margin-bottom: 2rem;
+  margin: 2rem 5px 3rem;
 }
 
 #score {
@@ -124,7 +124,8 @@ main {
 
 #top-text .themes {
   display: flex;
-  gap: 5px;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 #top-text .theme {
@@ -141,7 +142,7 @@ h1 {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 5px;
+  gap: 10px;
 }
 
 h2 {
@@ -183,7 +184,7 @@ button {
   background: rgba(255, 255, 255, .15);
   color: #d3d3d3;
   cursor: pointer;
-  font-size: .9rem;
+  font-size: 1rem;
   font-family: inherit;
   transition: .1s;
 }
@@ -203,8 +204,15 @@ button.wrong {
 }
 
 button:disabled {
-  background: #2c2c2c;
+  background: #444;
+  color: #aaa;
   cursor: not-allowed;
+}
+
+.copyBtn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
 }
 
 input {
@@ -215,14 +223,14 @@ input {
   border-radius: 10px;
   background: rgba(255, 255, 255, .15);
   color: #d3d3d3;
-  font-size: .9rem;
+  font-size: 1rem;
   font-family: inherit;
 }
 
 .gameMode {
   display: flex;
   justify-content: center;
-  gap: 5px;
+  gap: 10px;
 }
 
 .gameModeBtn {
@@ -237,12 +245,24 @@ input {
   margin-bottom: 2rem;
 }
 
+.questionTitle {
+  font-size: 1rem;
+}
+
+.pseudo {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 90%;
+  overflow: hidden;
+}
+
 fieldset {
   border: 2px solid rgba(255, 255, 255, .15);
   border-radius: 1rem;
-  padding: 12px;
+  padding: 20px 12px 12px;
   display: flex;
-  gap: 5px;
+  justify-content: center;
+  gap: 10px;
 }
 
 legend {
@@ -255,7 +275,7 @@ legend {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-bottom: 2rem;
+  margin-top: 2rem;
 }
 
 .player {
@@ -290,39 +310,20 @@ legend {
   font-style: italic;
 }
 
-footer {
-  margin: 5px auto;
-  font-size: .7rem;
-}
-
-.roomCodeContainer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin: 2rem 0;
-}
-
-.roomCode {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border: 2px solid rgba(255, 255, 255, .15);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, .15);
-  font-size: 28px;
-  font-weight: bold;
-  letter-spacing: 5px;
-  padding: 6px 12px 6px 18px;
-  height: 55px;
-}
-
 @media (max-width: 600px) {
   body::before {
     width: 600px;
     height: 600px;
     left: 85%;
-    top: auto;
+    top: 80px;
+  }
+
+  main {
+    width: 100vw;
+  }
+
+  h1 {
+    font-size: 2rem;
   }
 
   .answers {

@@ -311,9 +311,7 @@ onUnmounted(() => {
       </div>
     </header>
     <section v-if="!gameMode">
-      <h1>
-        <span>QuizÉmeraude</span>
-      </h1>
+      <h1>QuizÉmeraude</h1>
       <p class="welcome">
         Bienvenue sur QuizÉmeraude ! Réponds à des questions de culture générale sous forme de QCM pour collecter des
         émeraudes. Défie aussi tes amis dans des parties privées accessibles via un code.
@@ -350,46 +348,48 @@ onUnmounted(() => {
           </button>
         </fieldset>
       </div>
-      <button class="gameModeBtn" @click="gameMode = null">
-        Accueil
-      </button>
+      <div class="gameMode">
+        <button class="gameModeBtn" @click="gameMode = null">
+          Accueil
+        </button>
+      </div>
     </section>
     <section v-else-if="
       gameMode === 'multi' &&
       multiState === 'lobby'
     ">
-      <h1>Partie #{{ roomCode }}</h1>
-      <div class="roomCodeContainer">
-        <div class="roomCode">
-          {{ roomCode }}
-        </div>
-        <button type="button" @click="copyRoomCode">
+      <h1>
+        <span>Partie #{{ roomCode }}</span>
+        <button type="button" class="copyBtn" @click="copyRoomCode">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="24px">
             <path fill="currentColor"
               d="M448 96L439.4 96C428.4 76.9 407.7 64 384 64L256 64C232.3 64 211.6 76.9 200.6 96L192 96C156.7 96 128 124.7 128 160L128 512C128 547.3 156.7 576 192 576L448 576C483.3 576 512 547.3 512 512L512 160C512 124.7 483.3 96 448 96zM264 176C250.7 176 240 165.3 240 152C240 138.7 250.7 128 264 128L376 128C389.3 128 400 138.7 400 152C400 165.3 389.3 176 376 176L264 176z" />
           </svg>
         </button>
-      </div>
-      <h2>Joueurs</h2>
-      <div class="playerList">
-        <span v-for="player in players" :key="player.id" class="player">
-          {{ player.name }}
-          <span v-if="player.host" class="tagHost">
-            Hôte
-          </span>
-        </span>
-      </div>
+      </h1>
       <div v-if="isHost" class="gameMode">
-        <button class="redBtn" @click="closeMultiplayerGame">
+        <button class="gameModeBtn redBtn" @click="closeMultiplayerGame">
           Fermer
         </button>
-        <button class="blueBtn" @click="startMultiplayerGame" :disabled="players.length < 2">
+        <button class="gameModeBtn blueBtn" @click="startMultiplayerGame" :disabled="players.length < 2">
           Démarrer
         </button>
       </div>
       <p v-else>
         En attente de l'hôte...
       </p>
+      <div class="playerList">
+        <p>
+          Joueurs
+          ({{ players.length }})
+        </p>
+        <span v-for="player in players" :key="player.id" class="player">
+          <span class="pseudo">{{ player.name }}</span>
+          <span v-if="player.host" class="tagHost">
+            Hôte
+          </span>
+        </span>
+      </div>
     </section>
     <section v-else-if="isPlaying">
       <div id="top-text" v-if="currentQuestion">
@@ -398,7 +398,7 @@ onUnmounted(() => {
             {{ theme }}
           </span>
         </div>
-        <p>
+        <p class="questionTitle">
           {{ currentQuestion.title }}
         </p>
       </div>
@@ -436,6 +436,18 @@ onUnmounted(() => {
       multiState === 'results'
     ">
       <h1>Classement final</h1>
+      <div class="gameMode">
+        <button class="blueBtn" @click="
+          gameMode = 'multi';
+        multiState = 'home';
+        finalRanking = [];
+        roomCode = '';
+        players = [];
+        isHost = false;
+        ">
+          Nouvelle partie
+        </button>
+      </div>
       <div class="playerList">
         <span v-for="(player, index) in finalRanking" :key="player.id" class="player">
           <strong>
@@ -448,20 +460,6 @@ onUnmounted(() => {
           </span>
         </span>
       </div>
-      <button class="blueBtn" @click="
-        gameMode = 'multi';
-      multiState = 'home';
-      finalRanking = [];
-      roomCode = '';
-      players = [];
-      isHost = false;
-      ">
-        Nouvelle partie
-      </button>
     </section>
   </main>
-  <footer>
-    màj 02/10/26, <a href="https://github.com/seguinleo/QuizEmeraude/discussions" rel="noopener noreferrer">proposer des
-      questions</a>
-  </footer>
 </template>
