@@ -11,15 +11,16 @@ const themes = [
   { id: 2, title: '🎨 Peinture' },
   { id: 3, title: '🗿 Sculpture et architecture' },
   { id: 4, title: '🎻 Musique et danse' },
-  { id: 5, title: '🎥 Cinéma et TV' },
-  { id: 6, title: '🏺 Mythologies et religions' },
+  { id: 5, title: '🎥 Cinéma et séries' },
+  { id: 6, title: '🏺 Mythologie et religion' },
   { id: 7, title: '📜 Histoire' },
   { id: 8, title: '🌍 Géographie' },
-  { id: 9, title: '🧪 Sciences et nature' },
-  { id: 10, title: '🎮 Jeu vidéo et Internet' },
-  { id: 11, title: '🎾 Sports' },
-  { id: 12, title: '🥐 Gastronomie' },
-  { id: 13, title: '🧠 Culture générale' }
+  { id: 9, title: '🧪 Science et nature' },
+  { id: 10, title: '🌐 Internet et médias' },
+  { id: 11, title: '🎾 Sport' },
+  { id: 12, title: '🎮 Jeu vidéo' },
+  { id: 13, title: '🥐 Gastronomie' },
+  { id: 14, title: '🧠 Culture générale' }
 ]
 
 const gameMode = ref(null)
@@ -35,6 +36,7 @@ const answers = ref([])
 const selectedAnswer = ref(null)
 const score = ref(0)
 const questionNumber = ref(0)
+const waitingForResult = ref(false)
 const timeLeft = ref(15)
 const totalQuestions = ref(10)
 const finalRanking = ref([])
@@ -78,14 +80,15 @@ function selectAnswer(answer) {
   if (selectedAnswer.value !== null) return
   if (!currentQuestion.value) return
   if (answerResult.value !== null) return
+  if (waitingForResult.value) return
+  if (timeLeft.value <= 0) return
 
   selectedAnswer.value = answer
 
   if (gameMode.value === 'solo') {
-    socket.emit('solo-answer', {
-      answer
-    })
+    socket.emit('solo-answer', { answer })
   } else {
+    waitingForResult.value = true
     socket.emit('answer', {
       code: roomCode.value,
       answer
@@ -102,7 +105,10 @@ const currentThemes = computed(() => {
 })
 
 function createRoom() {
-  if (!playerName.value.trim()) return
+  if (!playerName.value.trim()) {
+    showError('Pseudo invalide')
+    return
+  }
 
   socket.emit('create-room', {
     name: playerName.value.trim()
@@ -114,17 +120,12 @@ function joinRoom() {
   const code = roomCode.value.trim().toUpperCase()
 
   if (!name) {
-    showError('Entre ton pseudo.')
+    showError('Pseudo invalide')
     return
   }
 
-  if (!code) {
-    showError('Entre le code de la partie.')
-    return
-  }
-
-  if (code.length !== 5) {
-    showError('Le code doit contenir 5 caractères.')
+  if (!code || code.length !== 5) {
+    showError('Code invalide')
     return
   }
 
@@ -151,10 +152,11 @@ function setQuestion(question) {
   answers.value = [...question.answers]
   selectedAnswer.value = null
   answerResult.value = null
+  waitingForResult.value = false
   quizEnd.value = false
   questionNumber.value = question.number
   totalQuestions.value = question.total
-  timeLeft.value = question.time ?? 12
+  timeLeft.value = question.time ?? 15
 }
 
 function finishSoloGame() {
@@ -196,6 +198,10 @@ function onNewQuestion(question) {
   setQuestion(question)
 }
 
+function onAnswerStandby() {
+  waitingForResult.value = true
+}
+
 function onTimer(data) {
   timeLeft.value = data.time
 }
@@ -212,6 +218,7 @@ function onAnswerResult(data) {
   if (!data) return
   answerResult.value = data
   score.value = data.score
+  waitingForResult.value = false
 }
 
 function onRoomClosed() {
@@ -226,7 +233,7 @@ function onRoomClosed() {
   quizEnd.value = false
   selectedAnswer.value = null
   score.value = 0
-  showError('L’hôte a quitté la partie.')
+  showError('L’hôte a quitté la partie')
 }
 
 socket.on('room-error', message => {
@@ -268,6 +275,7 @@ onMounted(() => {
   socket.on('game-started', onGameStarted)
   socket.on('new-question', onNewQuestion)
   socket.on('timer', onTimer)
+  socket.on('answer-standby', onAnswerStandby)
   socket.on('answer-result', onAnswerResult)
   socket.on('game-end', onGameEnd)
   socket.on('solo-end', onSoloEnd)
@@ -280,6 +288,7 @@ onUnmounted(() => {
   socket.off('game-started', onGameStarted)
   socket.off('new-question', onNewQuestion)
   socket.off('timer', onTimer)
+  socket.off('answer-standby', onAnswerStandby)
   socket.off('answer-result', onAnswerResult)
   socket.off('game-end', onGameEnd)
   socket.off('solo-end', onSoloEnd)
@@ -310,14 +319,14 @@ onUnmounted(() => {
         </span>
       </div>
     </header>
-    <section v-if="!gameMode">
+    <section v-if="!gameMode" class="home">
       <h1>QuizÉmeraude</h1>
       <p class="welcome">
-        Bienvenue sur QuizÉmeraude ! Réponds à des questions de culture générale sous forme de QCM pour collecter des
-        émeraudes. Défie aussi tes amis dans des parties privées accessibles via un code.
+        Bienvenue sur QuizÉmeraude ! Réponds à des questions de culture générale pour collecter des émeraudes. Défie
+        aussi tes amis dans des parties privées accessibles via un code.
       </p>
       <div class="gameMode">
-        <button class="gameModeBtn" @click="startSoloGame">
+        <button class="gameModeBtn greenBtn" @click="startSoloGame">
           Solo
         </button>
         <button class="gameModeBtn blueBtn" @click="gameMode = 'multi'">
@@ -330,10 +339,11 @@ onUnmounted(() => {
       multiState === 'home'
     ">
       <div class="multiGame">
-        <h1>Multijoueur</h1>
+        <h2>Multijoueur</h2>
         <fieldset>
           <legend>Créer une partie privée</legend>
-          <input v-model="playerName" placeholder="Ton pseudo" maxlength="16">
+          <input v-model="playerName" placeholder="Pseudo" aria-label="Pseudo" spellcheck="false" autocorrect="off"
+            autocapitalize="none" autocomplete="off" maxlength="16">
           <button class="gameModeBtn blueBtn" @click="createRoom">
             Créer
           </button>
@@ -342,14 +352,15 @@ onUnmounted(() => {
       <div class="multiGame">
         <fieldset>
           <legend>Rejoindre une partie privée</legend>
-          <input v-model="roomCode" placeholder="Code de la partie" maxlength="5">
+          <input v-model="roomCode" placeholder="Code de la partie" aria-label="Code de la partie" spellcheck="false"
+            autocorrect="off" autocapitalize="none" autocomplete="off" maxlength="5">
           <button class="gameModeBtn blueBtn" @click="joinRoom">
             Rejoindre
           </button>
         </fieldset>
       </div>
       <div class="gameMode">
-        <button class="gameModeBtn" @click="gameMode = null">
+        <button class="gameModeBtn greenBtn" @click="gameMode = null">
           Accueil
         </button>
       </div>
@@ -358,7 +369,7 @@ onUnmounted(() => {
       gameMode === 'multi' &&
       multiState === 'lobby'
     ">
-      <h1>
+      <h2>
         <span>Partie #{{ roomCode }}</span>
         <button type="button" class="copyBtn" @click="copyRoomCode">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="24px">
@@ -366,7 +377,7 @@ onUnmounted(() => {
               d="M448 96L439.4 96C428.4 76.9 407.7 64 384 64L256 64C232.3 64 211.6 76.9 200.6 96L192 96C156.7 96 128 124.7 128 160L128 512C128 547.3 156.7 576 192 576L448 576C483.3 576 512 547.3 512 512L512 160C512 124.7 483.3 96 448 96zM264 176C250.7 176 240 165.3 240 152C240 138.7 250.7 128 264 128L376 128C389.3 128 400 138.7 400 152C400 165.3 389.3 176 376 176L264 176z" />
           </svg>
         </button>
-      </h1>
+      </h2>
       <div v-if="isHost" class="gameMode">
         <button class="gameModeBtn redBtn" @click="closeMultiplayerGame">
           Fermer
@@ -404,6 +415,7 @@ onUnmounted(() => {
       </div>
       <div class="answers" v-if="currentQuestion">
         <button v-for="answer in answers" :key="answer" @click="selectAnswer(answer)" :class="{
+          standby: waitingForResult && !answerResult && answer === selectedAnswer,
           correct: answerResult && answer === answerResult.good,
           wrong:
             answerResult &&
@@ -418,9 +430,9 @@ onUnmounted(() => {
       gameMode === 'solo' &&
       quizEnd
     ">
-      <h1>Partie terminée !</h1>
+      <h2>Partie terminée !</h2>
       <div class="gameMode">
-        <button class="gameModeBtn" @click="
+        <button class="gameModeBtn greenBtn" @click="
           gameMode = null;
         multiState = 'home'
           ">
@@ -435,7 +447,7 @@ onUnmounted(() => {
       gameMode === 'multi' &&
       multiState === 'results'
     ">
-      <h1>Classement final</h1>
+      <h2>Classement final</h2>
       <div class="gameMode">
         <button class="blueBtn" @click="
           gameMode = 'multi';
@@ -449,9 +461,9 @@ onUnmounted(() => {
         </button>
       </div>
       <div class="playerList">
-        <span v-for="(player, index) in finalRanking" :key="player.id" class="player">
+        <span v-for="player in finalRanking" :key="player.id" class="player">
           <strong>
-            {{ index + 1 }}.
+            {{ player.rank }}.
             {{ player.name }}
           </strong>
           <span>

@@ -51,7 +51,7 @@ html {
 
 body {
   margin: 0;
-  font-size: .9rem;
+  font-size: 1rem;
   background: #151e15;
   text-align: center;
   color: #d3d3d3;
@@ -93,10 +93,15 @@ main {
   flex: 1;
 }
 
-.welcome {
+.home {
   max-width: 420px;
-  text-align: left;
-  line-height: 1.5rem;
+  margin: auto;
+  text-align: center;
+}
+
+.welcome {
+  text-align: justify;
+  line-height: 1.4rem;
   margin: 2rem 5px 3rem;
 }
 
@@ -129,25 +134,32 @@ main {
 }
 
 #top-text .theme {
+  font-size: .9rem;
   font-weight: 700;
   padding: 8px 1rem;
   border-radius: 48px;
-  background-color: #046126;
+  background: rgba(0, 0, 0, .2);
+  backdrop-filter: blur(8px);
 }
 
 h1 {
   font-family: 'Cormorant Garamond';
-  font-size: 3rem;
-  margin: 3rem auto;
+  font-size: 6rem;
+  margin: 4rem auto;
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 h2 {
   font-family: 'Cormorant Garamond';
-  font-size: 1.5rem;
+  font-size: 2rem;
+  margin: 4rem auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
 }
 
 .answers {
@@ -179,19 +191,18 @@ button {
   align-items: center;
   height: 55px;
   padding: 1rem;
-  border: 2px solid rgba(255, 255, 255, .15);
+  border: 1px solid rgba(255, 255, 255, .15);
   border-radius: 10px;
   background: rgba(255, 255, 255, .15);
   color: #d3d3d3;
   cursor: pointer;
   font-size: 1rem;
   font-family: inherit;
-  transition: .1s;
 }
 
 @media (hover: hover) {
   button:hover {
-    box-shadow: #068736 0px 7px 29px 0px;
+    color: #fff;
   }
 }
 
@@ -199,13 +210,16 @@ button.correct {
   background: #068736;
 }
 
+button.standby {
+  background-color: rgba(255, 255, 255, .3);
+}
+
 button.wrong {
   background: #760c0c;
 }
 
 button:disabled {
-  background: #444;
-  color: #aaa;
+  opacity: .7;
   cursor: not-allowed;
 }
 
@@ -219,10 +233,13 @@ input {
   height: 55px;
   width: 180px;
   padding: 1rem;
-  border: 2px solid rgba(255, 255, 255, .15);
+  border: 0;
+  background: #fff;
   border-radius: 10px;
-  background: rgba(255, 255, 255, .15);
-  color: #d3d3d3;
+  box-shadow: inset .2rem .2rem .5rem rgba(0, 0, 0, .2),
+    inset -.2rem -.2rem .5rem rgba(0, 0, 0, .2);
+  color: #555;
+  ;
   font-size: 1rem;
   font-family: inherit;
 }
@@ -234,7 +251,7 @@ input {
 }
 
 .gameModeBtn {
-  background: linear-gradient(#046126, #068736);
+  background: #068736;
   width: 120px;
 }
 
@@ -266,8 +283,7 @@ fieldset {
 }
 
 legend {
-  font-family: 'Cormorant Garamond';
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   font-weight: 700;
 }
 
@@ -283,7 +299,7 @@ legend {
   padding: 8px 1rem;
   border-radius: 48px;
   font-size: 1.1rem;
-  background-color: #046126;
+  background: rgba(0, 0, 0, .2);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -298,12 +314,28 @@ legend {
   padding: 0 4px;
 }
 
+.greenBtn {
+  background: #068736;
+  box-shadow: inset .2rem .2rem 1rem #12be51,
+    inset -.2rem -.2rem 1rem #024d1d,
+    .3rem .3rem .6rem rgba(0, 0, 0, .2),
+    -.2rem -.2rem .5rem rgba(0, 0, 0, .2);
+}
+
 .blueBtn {
   background: #204ba8;
+  box-shadow: inset .2rem .2rem 1rem #3466d1,
+    inset -.2rem -.2rem 1rem #0d2863,
+    .3rem .3rem .6rem rgba(0, 0, 0, .2),
+    -.2rem -.2rem .5rem rgba(0, 0, 0, .2);
 }
 
 .redBtn {
   background: #760c0c;
+  box-shadow: inset .2rem .2rem 1rem #a51d1d,
+    inset -.2rem -.2rem 1rem #500707,
+    .3rem .3rem .6rem rgba(0, 0, 0, .2),
+    -.2rem -.2rem .5rem rgba(0, 0, 0, .2);
 }
 
 .italic {
@@ -323,7 +355,7 @@ legend {
   }
 
   h1 {
-    font-size: 2rem;
+    font-size: 3rem;
   }
 
   .answers {
