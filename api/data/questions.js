@@ -15,7 +15,7 @@ function shuffleArray(array) {
 const questions = [
   {
     id: 1,
-    theme: [8, 7],
+    theme: 4,
     difficulty: 2,
     title: 'Quelle ville actuelle s’est successivement appelée Byzance puis Constantinople ?',
     good: 'Istanbul',
@@ -23,7 +23,7 @@ const questions = [
   },
   {
     id: 2,
-    theme: [1],
+    theme: 1,
     difficulty: 2,
     title: 'Qui a écrit le roman Gargantua vers 1535 ?',
     good: 'François Rabelais',
@@ -31,7 +31,7 @@ const questions = [
   },
   {
     id: 3,
-    theme: [1],
+    theme: 1,
     difficulty: 2,
     title: 'Quel groupe de poètes français du XVIe siècle était composé notamment de Pierre de Ronsard et Joachim du Bellay ?',
     good: 'La Pléiade',
@@ -39,7 +39,7 @@ const questions = [
   },
   {
     id: 4,
-    theme: [1],
+    theme: 1,
     difficulty: 2,
     title: 'Quel philosophe est notamment connu pour avoir employé la formule « Je pense, donc je suis » ?',
     good: 'René Descartes',
@@ -47,7 +47,7 @@ const questions = [
   },
   {
     id: 5,
-    theme: [1],
+    theme: 1,
     difficulty: 2,
     title: 'Dans quelle œuvre peut-on lire « À vaincre sans péril, on triomphe sans gloire » ?',
     good: 'Le Cid',
@@ -55,7 +55,7 @@ const questions = [
   },
   {
     id: 6,
-    theme: [1],
+    theme: 1,
     difficulty: 4,
     title: 'Laquelle de ces fables de La Fontaine n’existe pas ?',
     good: 'Le Paon et le Coq',
@@ -63,7 +63,7 @@ const questions = [
   },
   {
     id: 7,
-    theme: [1],
+    theme: 1,
     difficulty: 2,
     title: 'Quel était le vrai nom de Molière ?',
     good: 'Jean-Baptiste Poquelin',
@@ -71,7 +71,7 @@ const questions = [
   },
   {
     id: 8,
-    theme: [1],
+    theme: 1,
     difficulty: 1,
     title: 'Laquelle de ces propositions désigne un célèbre dramaturge français du XVIIe siècle ?',
     good: 'Jean Racine',
@@ -79,7 +79,7 @@ const questions = [
   },
   {
     id: 9,
-    theme: [1],
+    theme: 1,
     difficulty: 3,
     title: 'Quel auteur avait pour vrai nom Charles Louis de Secondat ?',
     good: 'Montesquieu',
@@ -87,7 +87,7 @@ const questions = [
   },
   {
     id: 10,
-    theme: [1],
+    theme: 1,
     difficulty: 2,
     title: 'Quelle œuvre est attribuée à Beaumarchais ?',
     good: 'Le Barbier de Séville',

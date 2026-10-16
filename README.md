@@ -6,7 +6,7 @@
 [
   {
     id: 12,
-    theme: [2, 5],
+    theme: 1,
     difficulty: 2,
     title: ' ?',
     good: '',

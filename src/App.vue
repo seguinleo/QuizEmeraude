@@ -7,20 +7,13 @@ const socket = io({
 })
 
 const themes = [
-  { id: 1, title: '📖 Littérature et théâtre' },
-  { id: 2, title: '🎨 Peinture' },
-  { id: 3, title: '🗿 Sculpture et architecture' },
-  { id: 4, title: '🎻 Musique et danse' },
-  { id: 5, title: '🎥 Cinéma et séries' },
-  { id: 6, title: '🏺 Mythologie et religion' },
-  { id: 7, title: '📜 Histoire' },
-  { id: 8, title: '🌍 Géographie' },
-  { id: 9, title: '🧪 Science et nature' },
-  { id: 10, title: '🌐 Internet et médias' },
-  { id: 11, title: '🎾 Sport' },
-  { id: 12, title: '🎮 Jeu vidéo' },
-  { id: 13, title: '🥐 Gastronomie' },
-  { id: 14, title: '🧠 Culture générale' }
+  { id: 1, title: 'Culture classique', class: 'classique' },
+  { id: 2, title: 'Culture moderne', class: 'moderne' },
+  { id: 3, title: 'Histoire', class: 'histoire' },
+  { id: 4, title: 'Géographie', class: 'geo' },
+  { id: 5, title: 'Sciences et nature', class: 'science' },
+  { id: 6, title: 'Sports', class: 'sport' },
+  { id: 7, title: 'Culture générale', class: 'cultureg' }
 ]
 
 const gameMode = ref(null)
@@ -96,12 +89,9 @@ function selectAnswer(answer) {
   }
 }
 
-const currentThemes = computed(() => {
-  const themeIds = currentQuestion.value?.theme ?? []
-
-  return themes
-    .filter(theme => themeIds.includes(theme.id))
-    .map(theme => theme.title)
+const currentTheme = computed(() => {
+  const themeId = currentQuestion.value?.theme
+  return themes.find(theme => theme.id === themeId) ?? null
 })
 
 function createRoom() {
@@ -323,7 +313,9 @@ onUnmounted(() => {
       <h1>QuizÉmeraude</h1>
       <p class="welcome">
         Bienvenue sur QuizÉmeraude ! Réponds à des questions de culture générale pour collecter des émeraudes. Défie
-        aussi tes amis dans des parties privées accessibles via un code.
+        aussi tes amis dans des parties privées accessibles via un code. Découvre aussi mes autres quiz sur les <a
+          href="../paintings">tableaux célèbres</a> et les <a href="../flags">drapeaux du monde</a>. <a
+          href="https://notida.fr/?link=a0a94f894dacb4f63961baaa9be35198">Fiche culture et ressources</a>.
       </p>
       <div class="gameMode">
         <button class="gameModeBtn greenBtn" @click="startSoloGame">
@@ -405,8 +397,8 @@ onUnmounted(() => {
     <section v-else-if="isPlaying">
       <div id="top-text" v-if="currentQuestion">
         <div class="themes">
-          <span v-for="(theme, i) in currentThemes" :key="i" class="theme">
-            {{ theme }}
+          <span v-if="currentTheme" class="theme" :class="currentTheme.class">
+            {{ currentTheme.title }}
           </span>
         </div>
         <p class="questionTitle">

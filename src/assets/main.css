@@ -138,8 +138,34 @@ main {
   font-weight: 700;
   padding: 8px 1rem;
   border-radius: 48px;
-  background: rgba(0, 0, 0, .2);
-  backdrop-filter: blur(8px);
+}
+
+#top-text .theme.classique {
+  background: #0b2f7c
+}
+
+#top-text .theme.moderne {
+  background: #5c08a6
+}
+
+#top-text .theme.histoire {
+  background: #561e03
+}
+
+#top-text .theme.geo {
+  background: #238ce7
+}
+
+#top-text .theme.science {
+  background: #026911
+}
+
+#top-text .theme.sport {
+  background: #951111
+}
+
+#top-text .theme.cultureg {
+  background: #a31db2
 }
 
 h1 {
