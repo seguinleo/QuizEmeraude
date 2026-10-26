@@ -13,16 +13,14 @@ app.set('trust proxy', 1)
 const MAX_PLAYERS = 50
 const MAX_QUESTIONS = 10
 const MAX_TIME = 15
-const RESULT_TIME = 2000
-
-const difficulties = {
+const RESULT_TIME = 4000
+const DIFFICULTIES = {
   1: 1,
   2: 2,
   3: 3,
   4: 5
 }
-
-const allowedOrigins = [
+const ALLOWED_ORIGINS = [
   'https://leoseguin.fr',
   'http://localhost:5173'
 ]
@@ -30,7 +28,7 @@ const allowedOrigins = [
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true)
-    if (allowedOrigins.includes(origin)) return callback(null, true)
+    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true)
     return callback(new Error('Not allowed by CORS'))
   },
   credentials: true,
@@ -42,10 +40,9 @@ app.use(express.json({ limit: '10kb' }))
 
 const PORT = 3006
 const server = http.createServer(app)
-
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: ALLOWED_ORIGINS,
     credentials: true,
     methods: ['GET', 'POST']
   },
@@ -104,7 +101,7 @@ function generateCode() {
 }
 
 function getEmeralds(question) {
-  return difficulties[question.difficulty] || 0
+  return DIFFICULTIES[question.difficulty] || 0
 }
 
 function isSolo(room) {
@@ -145,9 +142,9 @@ function sendAnswerResult(room, player) {
   const question = room.currentQuestion
   if (!question) return
 
-  const hasAnswered = room.answers.has(player.id)
-  const answer = room.answers.get(player.id)
-
+  const response = room.answers.get(player.id)
+  const hasAnswered = Boolean(response)
+  const answer = response?.answer
   const correct = hasAnswered && answer === question.good
   const emeralds = correct ? getEmeralds(question) : 0
 
@@ -161,48 +158,101 @@ function sendAnswerResult(room, player) {
 }
 
 function sendResultsToAll(room) {
+  const question = room.currentQuestion
+  if (!question) return
+
+  const correctPlayers = []
+
   for (const player of room.players) {
-    sendAnswerResult(room, player)
+    const response = room.answers.get(player.id)
+    const hasAnswered = Boolean(response)
+    const answer = response?.answer
+    const correct = hasAnswered && answer === question.good
+    const emeralds = correct ? getEmeralds(question) : 0
+
+    if (correct) {
+      player.score += emeralds
+
+      correctPlayers.push({
+        id: player.id,
+        name: player.name,
+        responseTime: response.responseTime
+      })
+    }
+
+    io.to(player.id).emit('answer-result', {
+      correct,
+      good: question.good,
+      emeralds,
+      score: player.score,
+      answered: hasAnswered
+    })
   }
+
+  correctPlayers.sort(
+    (a, b) => a.responseTime - b.responseTime
+  )
+
+  const winner = correctPlayers[0] || null
+
+  room.fastestAnswer = winner
+    ? {
+      id: winner.id,
+      name: winner.name,
+      responseTime: winner.responseTime
+    }
+    : null
+
+  io.to(getTarget(room)).emit('fastest-answer', {
+    player: room.fastestAnswer
+  })
 }
 
 function startTimer(room) {
   stopTimer(room)
 
-  room.timeLeft = MAX_TIME
-
   const target = getTarget(room)
+  let lastTimeLeft = null
 
-  io.to(target).emit('timer', {
-    time: room.timeLeft
-  })
-
-  room.timer = setInterval(() => {
-    if (room.status !== 'playing') {
+  function tick() {
+    if (room.status !== 'playing' || room.questionChanging) {
       stopTimer(room)
       return
     }
 
-    if (room.questionChanging) {
-      stopTimer(room)
-      return
+    const remaining = Math.max(
+      0,
+      Math.ceil((room.questionDeadline - Date.now()) / 1000)
+    )
+
+    room.timeLeft = remaining
+
+    if (remaining !== lastTimeLeft) {
+      lastTimeLeft = remaining
+      io.to(target).emit('timer', { time: remaining })
     }
 
-    room.timeLeft--
+    if (remaining === 0) {
+      finishQuestion(room)
+    }
+  }
 
-    io.to(target).emit('timer', {
-      time: room.timeLeft
-    })
+  tick()
 
-    if (room.timeLeft > 0) return
+  if (room.status === 'playing' && !room.questionChanging) {
+    room.timer = setInterval(tick, 250)
+  }
+}
 
-    stopTimer(room)
-    room.questionChanging = true
+function finishQuestion(room) {
+  if (room.status !== 'playing') return
+  if (room.questionChanging) return
 
-    sendResultsToAll(room)
+  room.questionChanging = true
 
-    scheduleNextQuestion(room)
-  }, 1000)
+  stopTimer(room)
+  sendResultsToAll(room)
+  scheduleNextQuestion(room)
 }
 
 function sendNextQuestion(room) {
@@ -223,6 +273,8 @@ function sendNextQuestion(room) {
   room.answers = new Map()
   room.questionChanging = false
   room.questionDeadline = Date.now() + MAX_TIME * 1000
+  room.questionStartTime = Date.now()
+  room.fastestAnswer = null
 
   const answers = shuffleArray([
     question.good,
@@ -246,13 +298,16 @@ function sendNextQuestion(room) {
 
 function nextQuestion(room) {
   if (room.status !== 'playing') return
-
   stopTimer(room)
   clearNextQuestionTimeout(room)
-
   room.questionIndex++
-
   sendNextQuestion(room)
+}
+
+function getPublicPlayers(room) {
+  return room.players.map(({ id, name, host, score }) => ({
+    id, name, host, score
+  }))
 }
 
 function finishGame(room) {
@@ -309,9 +364,7 @@ function validateName(name) {
 
   const normalized = name.trim()
 
-  if (!/^[\p{L}\p{N}-]{1,16}$/u.test(normalized)) {
-    return null
-  }
+  if (!/^[\p{L}\p{N}&'_+\- ]{1,20}$/u.test(normalized)) return null
 
   return normalized
 }
@@ -342,7 +395,9 @@ function createRoomState({
     nextQuestionTimeout: null,
     timeLeft: MAX_TIME,
     questionDeadline: 0,
-    questionChanging: false
+    questionChanging: false,
+    questionStartTime: 0,
+    fastestAnswer: null
   }
 }
 
@@ -359,7 +414,6 @@ io.on('connection', socket => {
     })
 
     socket.data.soloRoom = soloRoom
-
     sendNextQuestion(soloRoom)
   })
 
@@ -373,7 +427,6 @@ io.on('connection', socket => {
     if (room.status !== 'playing') return
     if (!room.currentQuestion) return
     if (room.questionChanging) return
-    if (room.answers.has(socket.id)) return
     if (Date.now() >= room.questionDeadline) return
 
     const question = room.currentQuestion
@@ -395,7 +448,10 @@ io.on('connection', socket => {
     const correct = answer === question.good
     const emeralds = correct ? getEmeralds(question) : 0
 
-    room.answers.set(socket.id, answer)
+    room.answers.set(socket.id, {
+      answer,
+      responseTime: Date.now() - room.questionStartTime
+    })
 
     if (correct) {
       player.score += emeralds
@@ -403,9 +459,7 @@ io.on('connection', socket => {
 
     room.questionChanging = true
     stopTimer(room)
-
     sendAnswerResult(room, player)
-
     scheduleNextQuestion(room)
   })
 
@@ -510,7 +564,7 @@ io.on('connection', socket => {
       players: room.players
     })
 
-    io.to(room.code).emit('players', room.players)
+    io.to(room.code).emit('players', getPublicPlayers(room))
   })
 
   socket.on('start-game', payload => {
@@ -560,14 +614,9 @@ io.on('connection', socket => {
     )
 
     if (!player) return
-    if (room.answers.has(socket.id)) return
 
     const question = room.currentQuestion
-
-    const possibleAnswers = [
-      question.good,
-      ...question.wrong
-    ]
+    const possibleAnswers = [question.good, ...question.wrong]
 
     if (
       typeof answer !== 'string' ||
@@ -577,17 +626,9 @@ io.on('connection', socket => {
       return
     }
 
-    const correct = answer === question.good
-    const emeralds = correct ? getEmeralds(question) : 0
-
-    room.answers.set(socket.id, answer)
-
-    if (correct) {
-      player.score += emeralds
-    }
-
-    socket.emit('answer-standby', {
-      answered: true
+    room.answers.set(socket.id, {
+      answer,
+      responseTime: Date.now() - room.questionStartTime
     })
   })
 
@@ -652,7 +693,7 @@ io.on('connection', socket => {
 
       room.answers.delete(socket.id)
 
-      io.to(code).emit('players', room.players)
+      io.to(code).emit('players', getPublicPlayers(room))
 
       break
     }

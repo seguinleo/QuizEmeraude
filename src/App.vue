@@ -2,7 +2,8 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { io } from 'socket.io-client'
 
-const socket = io({
+const socket = io('https://leoseguin.fr', {
+  path: '/socket.io/',
   withCredentials: true
 })
 
@@ -19,7 +20,7 @@ const themes = [
 const gameMode = ref(null)
 const multiState = ref('home')
 const roomCode = ref('')
-const playerName = ref('')
+const playerName = ref(localStorage.getItem('name') || '')
 const players = ref([])
 const isHost = ref(false)
 const currentQuestion = ref(null)
@@ -29,8 +30,8 @@ const answers = ref([])
 const selectedAnswer = ref(null)
 const score = ref(0)
 const questionNumber = ref(0)
-const waitingForResult = ref(false)
 const timeLeft = ref(15)
+const fastestPlayer = ref(null)
 const totalQuestions = ref(10)
 const finalRanking = ref([])
 const codeCopied = ref(false)
@@ -70,10 +71,8 @@ function startSoloGame() {
 }
 
 function selectAnswer(answer) {
-  if (selectedAnswer.value !== null) return
   if (!currentQuestion.value) return
   if (answerResult.value !== null) return
-  if (waitingForResult.value) return
   if (timeLeft.value <= 0) return
 
   selectedAnswer.value = answer
@@ -81,7 +80,6 @@ function selectAnswer(answer) {
   if (gameMode.value === 'solo') {
     socket.emit('solo-answer', { answer })
   } else {
-    waitingForResult.value = true
     socket.emit('answer', {
       code: roomCode.value,
       answer
@@ -95,13 +93,17 @@ const currentTheme = computed(() => {
 })
 
 function createRoom() {
-  if (!playerName.value.trim()) {
+  const name = playerName.value.trim()
+
+  if (!name) {
     showError('Pseudo invalide')
     return
   }
 
+  localStorage.setItem('name', name)
+
   socket.emit('create-room', {
-    name: playerName.value.trim()
+    name
   })
 }
 
@@ -118,6 +120,8 @@ function joinRoom() {
     showError('Code invalide')
     return
   }
+
+  localStorage.setItem('name', name)
 
   socket.emit('join-room', {
     code,
@@ -142,7 +146,7 @@ function setQuestion(question) {
   answers.value = [...question.answers]
   selectedAnswer.value = null
   answerResult.value = null
-  waitingForResult.value = false
+  fastestPlayer.value = null
   quizEnd.value = false
   questionNumber.value = question.number
   totalQuestions.value = question.total
@@ -188,10 +192,6 @@ function onNewQuestion(question) {
   setQuestion(question)
 }
 
-function onAnswerStandby() {
-  waitingForResult.value = true
-}
-
 function onTimer(data) {
   timeLeft.value = data.time
 }
@@ -208,7 +208,6 @@ function onAnswerResult(data) {
   if (!data) return
   answerResult.value = data
   score.value = data.score
-  waitingForResult.value = false
 }
 
 function onRoomClosed() {
@@ -226,9 +225,17 @@ function onRoomClosed() {
   showError('L’hôte a quitté la partie')
 }
 
-socket.on('room-error', message => {
-  showError(message)
-})
+function onRoomError(message) {
+  showError(
+    typeof message === 'string'
+      ? message
+      : 'Une erreur est survenue'
+  )
+}
+
+function onFastestAnswer(data) {
+  fastestPlayer.value = data?.player ?? null
+}
 
 function onGameEnd(data) {
   finishMultiplayerGame(data.ranking)
@@ -265,11 +272,12 @@ onMounted(() => {
   socket.on('game-started', onGameStarted)
   socket.on('new-question', onNewQuestion)
   socket.on('timer', onTimer)
-  socket.on('answer-standby', onAnswerStandby)
   socket.on('answer-result', onAnswerResult)
+  socket.on('fastest-answer', onFastestAnswer)
   socket.on('game-end', onGameEnd)
   socket.on('solo-end', onSoloEnd)
   socket.on('room-closed', onRoomClosed)
+  socket.on('room-error', onRoomError)
 })
 
 onUnmounted(() => {
@@ -278,11 +286,12 @@ onUnmounted(() => {
   socket.off('game-started', onGameStarted)
   socket.off('new-question', onNewQuestion)
   socket.off('timer', onTimer)
-  socket.off('answer-standby', onAnswerStandby)
   socket.off('answer-result', onAnswerResult)
+  socket.off('fastest-answer', onFastestAnswer)
   socket.off('game-end', onGameEnd)
   socket.off('solo-end', onSoloEnd)
   socket.off('room-closed', onRoomClosed)
+  socket.off('room-error', onRoomError)
 })
 </script>
 
@@ -312,10 +321,7 @@ onUnmounted(() => {
     <section v-if="!gameMode" class="home">
       <h1>QuizÉmeraude</h1>
       <p class="welcome">
-        Bienvenue sur QuizÉmeraude ! Réponds à des questions de culture générale pour collecter des émeraudes. Défie
-        aussi tes amis dans des parties privées accessibles via un code. Découvre aussi mes autres quiz sur les <a
-          href="../paintings">tableaux célèbres</a> et les <a href="../flags">drapeaux du monde</a>. <a
-          href="https://notida.fr/?link=a0a94f894dacb4f63961baaa9be35198">Fiche culture et ressources</a>.
+        Teste ta culture générale avec QuizÉmeraude ! Réponds à ce quiz en ligne pour gagner des émeraudes et défie tes amis dans des parties privées. Découvre aussi mon autre quiz sur les <a href="../paintings">tableaux célèbres</a> et sur les <a href="../flags">drapeaux du monde</a>. <a href="https://notida.fr/?link=a0a94f894dacb4f63961baaa9be35198">Fiche et ressources</a>.
       </p>
       <div class="gameMode">
         <button class="gameModeBtn greenBtn" @click="startSoloGame">
@@ -333,12 +339,9 @@ onUnmounted(() => {
       <div class="multiGame">
         <h2>Multijoueur</h2>
         <fieldset>
-          <legend>Créer une partie privée</legend>
+          <legend>Pseudo</legend>
           <input v-model="playerName" placeholder="Pseudo" aria-label="Pseudo" spellcheck="false" autocorrect="off"
-            autocapitalize="none" autocomplete="off" maxlength="16">
-          <button class="gameModeBtn blueBtn" @click="createRoom">
-            Créer
-          </button>
+            autocapitalize="none" autocomplete="off" maxlength="20">
         </fieldset>
       </div>
       <div class="multiGame">
@@ -351,8 +354,20 @@ onUnmounted(() => {
           </button>
         </fieldset>
       </div>
+      <div class="multiGame">
+        <fieldset>
+          <legend>Créer une partie privée</legend>
+          <button class="gameModeBtn blueBtn" @click="createRoom">
+            Créer
+          </button>
+        </fieldset>
+      </div>
       <div class="gameMode">
-        <button class="gameModeBtn greenBtn" @click="gameMode = null">
+        <button class="gameModeBtn redBtn" @click="gameMode = null">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" viewBox="0 0 640 640">
+            <path fill="currentColor"
+              d="M73.4 297.4C60.9 309.9 60.9 330.2 73.4 342.7L233.4 502.7C245.9 515.2 266.2 515.2 278.7 502.7C291.2 490.2 291.2 469.9 278.7 457.4L173.3 352L544 352C561.7 352 576 337.7 576 320C576 302.3 561.7 288 544 288L173.3 288L278.7 182.6C291.2 170.1 291.2 149.8 278.7 137.3C266.2 124.8 245.9 124.8 233.4 137.3L73.4 297.3z" />
+          </svg>
           Accueil
         </button>
       </div>
@@ -404,10 +419,16 @@ onUnmounted(() => {
         <p class="questionTitle">
           {{ currentQuestion.title }}
         </p>
+        <div class="gameMode">
+          <div v-if="fastestPlayer && answerResult" class="fasterPlayer">
+            ⚡{{ fastestPlayer.name }}
+            {{ (fastestPlayer.responseTime / 1000).toFixed(1) }}s
+          </div>
+        </div>
       </div>
       <div class="answers" v-if="currentQuestion">
         <button v-for="answer in answers" :key="answer" @click="selectAnswer(answer)" :class="{
-          standby: waitingForResult && !answerResult && answer === selectedAnswer,
+          standby: !answerResult && answer === selectedAnswer,
           correct: answerResult && answer === answerResult.good,
           wrong:
             answerResult &&
@@ -424,10 +445,14 @@ onUnmounted(() => {
     ">
       <h2>Partie terminée !</h2>
       <div class="gameMode">
-        <button class="gameModeBtn greenBtn" @click="
+        <button class="gameModeBtn redBtn" @click="
           gameMode = null;
         multiState = 'home'
           ">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" viewBox="0 0 640 640">
+            <path fill="currentColor"
+              d="M73.4 297.4C60.9 309.9 60.9 330.2 73.4 342.7L233.4 502.7C245.9 515.2 266.2 515.2 278.7 502.7C291.2 490.2 291.2 469.9 278.7 457.4L173.3 352L544 352C561.7 352 576 337.7 576 320C576 302.3 561.7 288 544 288L173.3 288L278.7 182.6C291.2 170.1 291.2 149.8 278.7 137.3C266.2 124.8 245.9 124.8 233.4 137.3L73.4 297.3z" />
+          </svg>
           Accueil
         </button>
         <button class="gameModeBtn blueBtn" @click="startSoloGame">

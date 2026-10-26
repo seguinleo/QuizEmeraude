@@ -278,7 +278,11 @@ input {
 
 .gameModeBtn {
   background: #068736;
-  width: 120px;
+  min-width: 120px;
+}
+
+.gameModeBtn svg {
+  margin-right: 4px;
 }
 
 .multiGame {
@@ -308,6 +312,11 @@ fieldset {
   gap: 10px;
 }
 
+fieldset button,
+fieldset input {
+  width: 100%;
+}
+
 legend {
   font-size: 1.2rem;
   font-weight: 700;
@@ -330,6 +339,16 @@ legend {
   justify-content: space-between;
   align-items: center;
   gap: 10px;
+}
+
+.fasterPlayer {
+  border-radius: 48px;
+  background: #fff;
+  color: #151e15;
+  font-size: .9rem;
+  font-weight: 700;
+  padding: 8px 1rem;
+  width: fit-content;
 }
 
 .tagHost {
