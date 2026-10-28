@@ -3,8 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { io } from 'socket.io-client'
 
 const socket = io('https://leoseguin.fr', {
-  path: '/socket.io/',
-  withCredentials: true
+  path: '/socket.io/'
 })
 
 const themes = [

@@ -10,10 +10,11 @@ const app = express()
 app.disable('x-powered-by')
 app.set('trust proxy', 1)
 
+const ROOM_TTL = 30 * 60_000
 const MAX_PLAYERS = 50
 const MAX_QUESTIONS = 10
 const MAX_TIME = 15
-const RESULT_TIME = 4000
+const RESULT_TIME = 3500
 const DIFFICULTIES = {
   1: 1,
   2: 2,
@@ -31,9 +32,7 @@ app.use(cors({
     if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true)
     return callback(new Error('Not allowed by CORS'))
   },
-  credentials: true,
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type', 'x-csrf-token']
+  methods: ['GET', 'POST']
 }))
 
 app.use(express.json({ limit: '10kb' }))
@@ -41,49 +40,27 @@ app.use(express.json({ limit: '10kb' }))
 const PORT = 3006
 const server = http.createServer(app)
 const io = new Server(server, {
+  allowRequest: (req, cb) => {
+    const origin = req.headers.origin
+    cb(null, !origin || ALLOWED_ORIGINS.includes(origin))
+  },
   cors: {
     origin: ALLOWED_ORIGINS,
-    credentials: true,
     methods: ['GET', 'POST']
   },
   maxHttpBufferSize: 16 * 1024
 })
 
-const connectionAttempts = new Map()
 const rooms = new Map()
 
+/**
+ * Clean rooms
+ */
 setInterval(() => {
-  const now = Date.now()
-
-  for (const [ip, entry] of connectionAttempts) {
-    if (now - entry.time > 60_000) {
-      connectionAttempts.delete(ip)
-    }
+  for (const room of [...rooms.values()]) {
+    if (room.status === 'waiting' && Date.now() - room.createdAt > ROOM_TTL) closeRoom(room)
   }
 }, 60_000).unref()
-
-io.use((socket, next) => {
-  const ip = socket.handshake.address
-  const now = Date.now()
-  const entry = connectionAttempts.get(ip)
-
-  if (!entry || now - entry.time > 60_000) {
-    connectionAttempts.set(ip, {
-      time: now,
-      count: 1
-    })
-
-    return next()
-  }
-
-  entry.count++
-
-  if (entry.count > 50) {
-    return next(new Error('Too many connections'))
-  }
-
-  next()
-})
 
 function generateCode() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789'
@@ -343,20 +320,28 @@ function finishGame(room) {
 
   room.ranking = ranking
 
-  setTimeout(() => {
-    rooms.delete(room.code)
-  }, 60_000)
-
   if (isSolo(room)) {
-    io.to(room.host).emit('solo-end', {
-      score: room.players[0].score
-    })
+    io.to(room.host).emit('solo-end', { score: room.players[0].score })
     return
   }
+  io.to(room.code).emit('game-end', { ranking })
+  releaseRoom(room)
+}
 
-  io.to(room.code).emit('game-end', {
-    ranking
-  })
+function releaseRoom(room) {
+  for (const p of room.players) {
+    const s = io.sockets.sockets.get(p.id)
+    if (s) { s.leave(room.code); s.data.roomCode = null }
+  }
+  if (rooms.get(room.code) === room) rooms.delete(room.code)
+}
+
+function closeRoom(room) {
+  stopTimer(room)
+  clearNextQuestionTimeout(room)
+  room.status = 'closed'
+  io.to(room.code).emit('room-closed')
+  releaseRoom(room)
 }
 
 function validateName(name) {
@@ -391,6 +376,7 @@ function createRoomState({
     questionIndex: 0,
     currentQuestion: null,
     answers: new Map(),
+    createdAt: Date.now(),
     timer: null,
     nextQuestionTimeout: null,
     timeLeft: MAX_TIME,
@@ -473,6 +459,11 @@ io.on('connection', socket => {
       return
     }
 
+    if (socket.data.roomCode) {
+      socket.emit('room-error', 'Vous êtes déjà dans une partie')
+      return
+    }
+
     const normalizedName = validateName(payload.name)
 
     if (!normalizedName) {
@@ -485,12 +476,13 @@ io.on('connection', socket => {
       code,
       host: socket.id,
       name: normalizedName,
-      status: 'lobby'
+      status: 'waiting'
     })
 
     rooms.set(code, room)
 
     socket.join(code)
+    socket.data.roomCode = code
     socket.emit('room-created', {
       code,
       players: room.players
@@ -503,6 +495,11 @@ io.on('connection', socket => {
       typeof payload !== 'object' ||
       Array.isArray(payload)
     ) {
+      return
+    }
+
+    if (socket.data.roomCode) {
+      socket.emit('room-error', 'Vous êtes déjà dans une partie')
       return
     }
 
@@ -529,7 +526,7 @@ io.on('connection', socket => {
       return
     }
 
-    if (room.status !== 'lobby') {
+    if (room.status !== 'waiting') {
       socket.emit('room-error', 'La partie a déjà commencé')
       return
     }
@@ -559,6 +556,7 @@ io.on('connection', socket => {
     room.players.push(player)
 
     socket.join(room.code)
+    socket.data.roomCode = room.code
     socket.emit('room-joined', {
       code: room.code,
       players: room.players
@@ -581,7 +579,7 @@ io.on('connection', socket => {
 
     if (!room) return
     if (room.host !== socket.id) return
-    if (room.status !== 'lobby') return
+    if (room.status !== 'waiting') return
     if (room.players.length < 2) return
 
     room.players.forEach(player => {
@@ -647,56 +645,28 @@ io.on('connection', socket => {
     if (!room) return
     if (room.host !== socket.id) return
 
-    stopTimer(room)
-    clearNextQuestionTimeout(room)
-
-    room.status = 'closed'
-
-    io.to(room.code).emit('room-closed')
-
-    rooms.delete(room.code)
+    closeRoom(room)
   })
 
   socket.on('disconnect', () => {
-    if (socket.data.soloRoom) {
-      const soloRoom = socket.data.soloRoom
-
-      stopTimer(soloRoom)
-      clearNextQuestionTimeout(soloRoom)
-
-      soloRoom.status = 'end'
+    const solo = socket.data.soloRoom
+    if (solo) {
+      stopTimer(solo)
+      clearNextQuestionTimeout(solo)
+      solo.status = 'end'
       socket.data.soloRoom = null
     }
 
-    for (const [code, room] of rooms) {
-      const player = room.players.find(
-        player => player.id === socket.id
-      )
+    const room = rooms.get(socket.data.roomCode)
+    if (!room) return
 
-      if (!player) continue
+    if (room.host === socket.id) return closeRoom(room)
 
-      if (player.host || room.host === socket.id) {
-        stopTimer(room)
-        clearNextQuestionTimeout(room)
+    room.players = room.players.filter(p => p.id !== socket.id)
+    room.answers.delete(socket.id)
+    io.to(room.code).emit('players', getPublicPlayers(room))
 
-        room.status = 'closed'
-
-        io.to(code).emit('room-closed')
-
-        rooms.delete(code)
-        break
-      }
-
-      room.players = room.players.filter(
-        player => player.id !== socket.id
-      )
-
-      room.answers.delete(socket.id)
-
-      io.to(code).emit('players', getPublicPlayers(room))
-
-      break
-    }
+    if (room.status === 'playing' && room.players.length < 2) finishGame(room)
   })
 })
 
