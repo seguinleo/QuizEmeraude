@@ -320,7 +320,7 @@ onUnmounted(() => {
     <section v-if="!gameMode" class="home">
       <h1>QuizÉmeraude</h1>
       <p class="welcome">
-        Teste ta culture générale avec QuizÉmeraude ! Réponds à ce quiz en ligne pour gagner des émeraudes et défie tes amis dans des parties privées. Découvre aussi mon autre quiz sur les <a href="../paintings">tableaux célèbres</a> et sur les <a href="../flags">drapeaux du monde</a>. <a href="https://notida.fr/?link=a0a94f894dacb4f63961baaa9be35198">Fiche et ressources</a>.
+        Teste ta culture générale avec QuizÉmeraude ! Réponds à des questions pour gagner des émeraudes et défie tes amis dans des parties privées. Découvre aussi mon autre quiz sur les <a href="../paintings">tableaux célèbres</a> et sur les <a href="../flags">drapeaux du monde</a>. <a href="https://notida.fr/?link=a0a94f894dacb4f63961baaa9be35198">Fiche et ressources</a>.
       </p>
       <div class="gameMode">
         <button class="gameModeBtn greenBtn" @click="startSoloGame">
