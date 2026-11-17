@@ -14,7 +14,7 @@ const ROOM_TTL = 30 * 60_000
 const MAX_PLAYERS = 50
 const MAX_QUESTIONS = 10
 const MAX_TIME = 15
-const RESULT_TIME = 3500
+const RESULT_TIME = 3200
 const DIFFICULTIES = {
   1: 1,
   2: 2,
@@ -660,13 +660,23 @@ io.on('connection', socket => {
     const room = rooms.get(socket.data.roomCode)
     if (!room) return
 
-    if (room.host === socket.id) return closeRoom(room)
+    const wasHost = room.host === socket.id
 
     room.players = room.players.filter(p => p.id !== socket.id)
     room.answers.delete(socket.id)
-    io.to(room.code).emit('players', getPublicPlayers(room))
 
-    if (room.status === 'playing' && room.players.length < 2) finishGame(room)
+    if (room.players.length === 0) {
+      closeRoom(room)
+      return
+    }
+
+    if (wasHost) {
+      const newHost = room.players[0]
+      newHost.host = true
+      room.host = newHost.id
+    }
+
+    io.to(room.code).emit('players', getPublicPlayers(room))
   })
 })
 
